@@ -18,7 +18,7 @@ const AnalyzaLogo = () => (
       Analyza
     </text>
   </svg>
-  
+
 );
 
 const App = () => {

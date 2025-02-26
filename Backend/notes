@@ -3,4 +3,5 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 
 the work which is left:
 
-predicitve analysis result, input it takes
+data preview
+Custom visualization
