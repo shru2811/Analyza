@@ -28,6 +28,7 @@ from sklearn.metrics import (
 from sklearn.impute import SimpleImputer
 from scipy.stats import zscore
 import seaborn as sns
+import logging
 
 app = FastAPI()
 
@@ -101,7 +102,7 @@ async def analyze_data(file: UploadFile = File(...), query: str = Form(...)):
 
         Expected JSON Output:
         {{
-            "summary": "<Short text summary>",
+            "summary": "<Short text summary along with the explanation of the visualization you made.>",
             "code": "<Python code for visualization using matplotlib>"
         }}
 
@@ -566,3 +567,116 @@ async def make_prediction(
     except Exception as e:
         print("Error during prediction:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# CUSTOM VISUALIZATION
+
+
+plt.switch_backend("Agg")
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+
+@app.post("/preview-data/")
+async def preview_data(file: UploadFile = File(...)):
+    """Reads the uploaded CSV file and returns the first few rows as a preview."""
+    try:
+        contents = await file.read()
+        df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
+        df.columns = df.columns.str.strip()
+
+        # Convert numerical columns to numeric types
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="ignore")
+
+        preview = df.head().to_dict(orient="records")
+        columns = list(df.columns)
+
+        return {"preview": preview, "columns": columns}
+
+    except Exception as e:
+        logging.error(f"Error reading file: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
+
+
+
+@app.post("/custom-visualization/")
+async def custom_visualization(
+    file: UploadFile = File(...),
+    x_axis: str = Query(None),
+    y_axis: str = Query(None),
+    plot_type: str = Query(...),
+    colors: str = Query(default="#1f77b4"),
+    explode: float = Query(default=0.0),  # For pie chart
+    bins: int = Query(default=20),  # For histogram
+):
+    """Generates different types of visualizations based on user input."""
+    try:
+        contents = await file.read()
+        df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
+
+        # Convert numerical columns to numeric types
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="ignore")
+
+        x_columns = x_axis.split(",") if x_axis else []
+        y_columns = y_axis.split(",") if y_axis else []
+        color_list = colors.split(",")
+
+        plt.figure(figsize=(8, 6))
+        sns.set_theme()
+
+        # Set the title of the graph
+        plt.title(f"{plot_type.capitalize()} Plot")
+
+        if plot_type == "pie":
+            if not y_columns:
+                return {"error": "Y-axis is required for pie chart"}
+            data = df[y_columns[0]].value_counts()
+            explode_values = [explode] * len(data)  # Apply explode to all slices
+            plt.pie(data, labels=data.index, autopct="%1.1f%%", colors=color_list, explode=explode_values, startangle=90)
+            plt.axis("equal")  # Ensure the pie chart is circular
+        elif plot_type == "histogram":
+            if not y_columns:
+                return {"error": "Y-axis is required for histogram"}
+            sns.histplot(df[y_columns[0]], color=color_list[0] if color_list else "#1f77b4", kde=True, bins=bins)
+        elif plot_type == "bar":
+            if not x_columns or not y_columns:
+                return {"error": "X-axis and Y-axis are required for bar chart"}
+            for i, y_col in enumerate(y_columns):
+                sns.barplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+        elif plot_type == "scatter":
+            if not x_columns or not y_columns:
+                return {"error": "X-axis and Y-axis are required for scatter plot"}
+            for i, y_col in enumerate(y_columns):
+                sns.scatterplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+        elif plot_type == "line":
+            if not x_columns or not y_columns:
+                return {"error": "X-axis and Y-axis are required for line graph"}
+            for i, y_col in enumerate(y_columns):
+                sns.lineplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+        elif plot_type == "box":
+            if not x_columns or not y_columns:
+                return {"error": "X-axis and Y-axis are required for box plot"}
+            for i, y_col in enumerate(y_columns):
+                sns.boxplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+        elif plot_type == "violin":
+            if not x_columns or not y_columns:
+                return {"error": "X-axis and Y-axis are required for violin plot"}
+            for i, y_col in enumerate(y_columns):
+                sns.violinplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+        else:
+            return {"error": "Invalid plot type"}
+
+        plt.legend()
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode("utf-8")
+        plt.close()
+
+        return {"image": image_base64}
+
+    except Exception as e:
+        logging.error(f"Error generating visualization: {str(e)}")
+        return {"error": str(e)}

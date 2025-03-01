@@ -140,6 +140,44 @@ function PredictiveAnalysis() {
     }
   };
 
+  // Helper function to render data preview table
+  const renderDataPreview = () => {
+    if (!preview || preview.length === 0) {
+      return <p className="text-gray-600">No preview data available.</p>;
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              {columns.map(column => (
+                <th key={column} className="border p-2 text-left font-medium text-sm">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {preview.map((row, rowIndex) => (
+              <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                {columns.map(column => (
+                  <td key={`${rowIndex}-${column}`} className="border p-2 text-sm">
+                    {row[column] !== undefined ? 
+                      (typeof row[column] === 'number' ? 
+                        row[column].toFixed(2) : 
+                        String(row[column])) : 
+                      'N/A'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* File Upload Area */}
@@ -161,16 +199,13 @@ function PredictiveAnalysis() {
 
       {columns.length > 0 && (
         <div className="space-y-6">
-          {/* Column Preview */}
+          {/* Data Preview Section */}
           <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Dataset Columns</h2>
-            <div className="bg-gray-50 p-3 rounded-lg overflow-x-auto">
-              <div className="grid grid-cols-4 gap-2">
-                {columns.map((col) => (
-                  <div key={col} className="bg-white p-2 rounded border">{col}</div>
-                ))}
-              </div>
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Data Preview</h2>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              {renderDataPreview()}
             </div>
+            <p className="text-xs text-gray-500 mt-1">Showing up to 5 rows of data</p>
           </div>
 
           <div>

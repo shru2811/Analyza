@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.0.8",
     "axios": "^1.7.9",
     "dashboard": "file:",
+    "papaparse": "^5.5.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
