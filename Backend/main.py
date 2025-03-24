@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 import pandas as pd
@@ -29,7 +29,7 @@ from sklearn.impute import SimpleImputer
 from scipy.stats import zscore
 import seaborn as sns
 import logging
-
+from typing import Optional
 app = FastAPI()
 
 # Configure Gemini API Key
@@ -152,20 +152,205 @@ async def analyze_data(file: UploadFile = File(...), query: str = Form(...)):
 
 
 # Updated endpoint for predictive analysis
+# @app.post("/predictive-analysis")
+# async def predictive_analysis(
+#     file: UploadFile = File(...),
+#     target: str = Form(...),
+#     features: str = Form(...),
+#     model: str = Form(...),
+# ):
+#     try:
+#         # Parse features (sent as JSON string)
+#         feature_list = json.loads(features)
+
+#         # Read the uploaded file
+#         df = await read_uploaded_file(file)
+
+#         # Check if target and features exist in dataframe
+#         if target not in df.columns:
+#             raise HTTPException(
+#                 status_code=400, detail=f"Target column '{target}' not found in dataset"
+#             )
+
+#         for feature in feature_list:
+#             if feature not in df.columns:
+#                 raise HTTPException(
+#                     status_code=400, detail=f"Feature '{feature}' not found in dataset"
+#                 )
+
+#         # Prepare data
+#         X = df[feature_list].copy()
+#         y = df[target].copy()
+
+#         # Handle missing values
+#         numeric_cols = X.select_dtypes(include=["number"]).columns
+#         categorical_cols = X.select_dtypes(include=["object", "category"]).columns
+
+#         if len(numeric_cols) > 0 and X[numeric_cols].isnull().any().any():
+#             numeric_imputer = SimpleImputer(strategy="mean")
+#             X[numeric_cols] = numeric_imputer.fit_transform(X[numeric_cols])
+
+#         if len(categorical_cols) > 0 and X[categorical_cols].isnull().any().any():
+#             categorical_imputer = SimpleImputer(strategy="most_frequent")
+#             X[categorical_cols] = categorical_imputer.fit_transform(X[categorical_cols])
+
+#         # Encode categorical features
+#         encoders = {}
+#         for col in categorical_cols:
+#             encoders[col] = LabelEncoder()
+#             X[col] = encoders[col].fit_transform(X[col])
+
+#         # Encode target if it's categorical
+#         target_encoder = None
+#         if y.dtype == "object" or y.dtype.name == "category":
+#             target_encoder = LabelEncoder()
+#             y = target_encoder.fit_transform(y)
+
+#         # Split data
+#         X_train, X_test, y_train, y_test = train_test_split(
+#             X, y, test_size=0.3, random_state=42
+#         )
+
+#         # Train model
+#         if model == "Linear Regression":
+#             model_instance = LinearRegression()
+#             model_instance.fit(X_train, y_train)
+#             y_pred = model_instance.predict(X_test)
+
+#             # Get coefficients
+#             coefficients = {}
+#             for feature, coef in zip(feature_list, model_instance.coef_):
+#                 coefficients[feature] = float(coef)
+
+#             response = {
+#                 "mse": float(mean_squared_error(y_test, y_pred)),
+#                 "r2": float(r2_score(y_test, y_pred)),
+#                 "coefficients": {
+#                     "intercept": float(model_instance.intercept_),
+#                     **coefficients,
+#                 },
+#             }
+
+#         elif model == "Logistic Regression":
+#             model_instance = LogisticRegression(max_iter=1000)
+#             model_instance.fit(X_train, y_train)
+#             y_pred = model_instance.predict(X_test)
+
+#             response = {
+#                 "accuracy": float(accuracy_score(y_test, y_pred)),
+#                 "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
+#                 "classification_report": classification_report(
+#                     y_test, y_pred, output_dict=True
+#                 ),
+#             }
+
+#         elif model == "Random Forest":
+#             # Check if classification or regression task
+#             if len(np.unique(y_train)) <= 10:  # Classification
+#                 model_instance = RandomForestClassifier(random_state=42)
+#                 model_instance.fit(X_train, y_train)
+#                 y_pred = model_instance.predict(X_test)
+
+#                 response = {
+#                     "accuracy": float(accuracy_score(y_test, y_pred)),
+#                     "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
+#                     "classification_report": classification_report(
+#                         y_test, y_pred, output_dict=True
+#                     ),
+#                     "feature_importance": dict(
+#                         zip(feature_list, model_instance.feature_importances_.tolist())
+#                     ),
+#                 }
+#             else:  # Regression
+#                 model_instance = RandomForestRegressor(random_state=42)
+#                 model_instance.fit(X_train, y_train)
+#                 y_pred = model_instance.predict(X_test)
+
+#                 response = {
+#                     "mse": float(mean_squared_error(y_test, y_pred)),
+#                     "r2": float(r2_score(y_test, y_pred)),
+#                     "feature_importance": dict(
+#                         zip(feature_list, model_instance.feature_importances_.tolist())
+#                     ),
+#                 }
+#         else:
+#             raise HTTPException(
+#                 status_code=400, detail=f"Unsupported model type: {model}"
+#             )
+
+#         # Create a visualization
+#         plt.figure(figsize=(10, 6))
+
+#         if model == "Linear Regression":
+#             # Create a scatter plot of actual vs predicted values
+#             plt.scatter(y_test, y_pred, alpha=0.5)
+
+#             # Add a perfect prediction line
+#             min_val = min(min(y_test), min(y_pred))
+#             max_val = max(max(y_test), max(y_pred))
+#             plt.plot([min_val, max_val], [min_val, max_val], "r--")
+
+#             plt.xlabel("Actual Values")
+#             plt.ylabel("Predicted Values")
+#             plt.title(f"Actual vs Predicted: {target}")
+
+#         elif model == "Logistic Regression" or (
+#             model == "Random Forest" and len(np.unique(y_train)) <= 10
+#         ):
+#             # Create a confusion matrix heatmap
+#             cm = confusion_matrix(y_test, y_pred)
+#             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+#             plt.xlabel("Predicted")
+#             plt.ylabel("Actual")
+#             plt.title("Confusion Matrix")
+
+#         else:  # Random Forest Regression
+#             # Feature importance plot
+#             importances = model_instance.feature_importances_
+#             indices = np.argsort(importances)
+
+#             plt.barh(range(len(indices)), importances[indices])
+#             plt.yticks(range(len(indices)), [feature_list[i] for i in indices])
+#             plt.xlabel("Feature Importance")
+#             plt.title("Feature Importance in Random Forest")
+
+#         # Save the plot and convert to base64
+#         img_buf = BytesIO()
+#         plt.savefig(img_buf, format="png")
+#         plt.close()
+#         img_buf.seek(0)
+#         img_base64 = base64.b64encode(img_buf.getvalue()).decode("utf-8")
+
+#         # Add the visualization to the response
+#         response["visualization"] = img_base64
+
+#         return response
+
+#     except Exception as e:
+#         print("Error:", str(e))
+#         raise HTTPException(status_code=500, detail=str(e))
+
+# Updated endpoint for predictive analysis
 @app.post("/predictive-analysis")
 async def predictive_analysis(
     file: UploadFile = File(...),
-    target: str = Form(...),
-    features: str = Form(...),
-    model: str = Form(...),
+    target: Optional[str] = Form(None),
+    features: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    suggest: bool = Form(False),
 ):
     try:
-        # Parse features (sent as JSON string)
-        feature_list = json.loads(features)
-
         # Read the uploaded file
         df = await read_uploaded_file(file)
-
+        
+        # Provide suggestions if requested
+        if suggest:
+            suggestions = suggest_target_and_features(df)
+            return suggestions
+        
+        # Parse features (sent as JSON string)
+        feature_list = json.loads(features) if features else []
+        
         # Check if target and features exist in dataframe
         if target not in df.columns:
             raise HTTPException(
@@ -200,9 +385,17 @@ async def predictive_analysis(
             encoders[col] = LabelEncoder()
             X[col] = encoders[col].fit_transform(X[col])
 
+        # Determine if target is categorical
+        is_categorical = y.dtype == "object" or y.dtype.name == "category"
+        # Determine if target is binary (only relevant if categorical)
+        is_binary = False
+        if is_categorical:
+            unique_values = y.nunique()
+            is_binary = unique_values == 2
+
         # Encode target if it's categorical
         target_encoder = None
-        if y.dtype == "object" or y.dtype.name == "category":
+        if is_categorical:
             target_encoder = LabelEncoder()
             y = target_encoder.fit_transform(y)
 
@@ -213,6 +406,12 @@ async def predictive_analysis(
 
         # Train model
         if model == "Linear Regression":
+            if is_categorical:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Linear Regression cannot be used with categorical target variables"
+                )
+                
             model_instance = LinearRegression()
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
@@ -232,6 +431,17 @@ async def predictive_analysis(
             }
 
         elif model == "Logistic Regression":
+            if not is_categorical:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Logistic Regression can only be used with categorical target variables"
+                )
+            if not is_binary:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Logistic Regression is only available for binary classification"
+                )
+                
             model_instance = LogisticRegression(max_iter=1000)
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
@@ -245,8 +455,7 @@ async def predictive_analysis(
             }
 
         elif model == "Random Forest":
-            # Check if classification or regression task
-            if len(np.unique(y_train)) <= 10:  # Classification
+            if is_categorical:  # Classification
                 model_instance = RandomForestClassifier(random_state=42)
                 model_instance.fit(X_train, y_train)
                 y_pred = model_instance.predict(X_test)
@@ -294,9 +503,7 @@ async def predictive_analysis(
             plt.ylabel("Predicted Values")
             plt.title(f"Actual vs Predicted: {target}")
 
-        elif model == "Logistic Regression" or (
-            model == "Random Forest" and len(np.unique(y_train)) <= 10
-        ):
+        elif (model == "Logistic Regression" or model == "Random Forest") and is_categorical:
             # Create a confusion matrix heatmap
             cm = confusion_matrix(y_test, y_pred)
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
@@ -323,9 +530,163 @@ async def predictive_analysis(
 
         # Add the visualization to the response
         response["visualization"] = img_base64
+        
+        # Add information about the target variable type to help the frontend
+        response["target_info"] = {
+            "is_categorical": is_categorical,
+            "is_binary": is_binary
+        }
 
         return response
 
+    except Exception as e:
+        print("Error:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Helper function to suggest target and features
+def suggest_target_and_features(df):
+    """
+    Suggest appropriate target and feature columns based on dataset analysis.
+    
+    This function analyzes the dataframe to:
+    1. Identify potential target columns (categorical with few unique values or numeric columns)
+    2. Suggest relevant features based on data types and correlations
+    """
+    suggestions = {
+        "potential_targets": [],
+        "suggested_features": {},
+        "column_types": {}
+    }
+    
+    # Analyze columns
+    for column in df.columns:
+        # Get data type and unique value count
+        dtype = df[column].dtype
+        unique_count = df[column].nunique()
+        non_null_count = df[column].count()
+        total_count = len(df)
+        null_percentage = (1 - non_null_count / total_count) * 100 if total_count > 0 else 0
+        
+        # Store column type info
+        if pd.api.types.is_numeric_dtype(dtype):
+            col_type = "numeric"
+        elif pd.api.types.is_categorical_dtype(dtype) or pd.api.types.is_object_dtype(dtype):
+            if unique_count <= 10:  # Reasonable threshold for classification target
+                col_type = "categorical"
+            else:
+                col_type = "text"  # Many unique values suggest text data
+        else:
+            col_type = "other"
+            
+        suggestions["column_types"][column] = {
+            "type": col_type,
+            "unique_values": int(unique_count),
+            "null_percentage": float(null_percentage),
+            "is_binary": unique_count == 2
+        }
+        
+        # Identify potential target columns
+        # Categorical columns with few unique values are good classification targets
+        if col_type == "categorical" and 2 <= unique_count <= 10 and null_percentage < 5:
+            suggestions["potential_targets"].append({
+                "column": column,
+                "type": "classification",
+                "unique_values": int(unique_count),
+                "is_binary": unique_count == 2
+            })
+        # Numeric columns with sufficient variance can be regression targets
+        elif col_type == "numeric" and unique_count > 10 and null_percentage < 5:
+            suggestions["potential_targets"].append({
+                "column": column,
+                "type": "regression",
+                "unique_values": int(unique_count)
+            })
+    
+    # For each potential target, suggest appropriate features
+    for target_info in suggestions["potential_targets"]:
+        target = target_info["column"]
+        target_type = target_info["type"]
+        
+        # Features should exclude the target
+        potential_features = [col for col in df.columns if col != target]
+        
+        # Filter features based on data quality
+        good_features = []
+        for feature in potential_features:
+            feature_type = suggestions["column_types"][feature]["type"]
+            null_percentage = suggestions["column_types"][feature]["null_percentage"]
+            
+            # Skip columns with too many missing values
+            if null_percentage > 30:
+                continue
+                
+            # For regression targets, numeric features are often most useful
+            if target_type == "regression" and feature_type == "numeric":
+                good_features.append(feature)
+            # For categorical targets, both numeric and categorical features can be useful
+            elif target_type == "classification":
+                good_features.append(feature)
+        
+        suggestions["suggested_features"][target] = good_features
+    
+    # Find the best target if there are multiple options
+    if suggestions["potential_targets"]:
+        # Prioritize regression targets with many numeric features or 
+        # classification targets with a balanced mix of features
+        best_target = max(
+            suggestions["potential_targets"],
+            key=lambda t: len(suggestions["suggested_features"][t["column"]])
+        )
+        suggestions["recommended_target"] = best_target["column"]
+        suggestions["recommended_features"] = suggestions["suggested_features"][best_target["column"]]
+    
+    return suggestions
+
+
+# Helper endpoint to get available models based on target type
+@app.post("/get-available-models")
+async def get_available_models(
+    target_column: str = Body(...),
+    file: UploadFile = File(...)
+):
+    try:
+        # Read the uploaded file
+        df = await read_uploaded_file(file)
+        
+        if target_column not in df.columns:
+            raise HTTPException(
+                status_code=400, detail=f"Target column '{target_column}' not found in dataset"
+            )
+            
+        # Determine target type
+        target_data = df[target_column]
+        is_categorical = target_data.dtype == "object" or target_data.dtype.name == "category"
+        
+        available_models = []
+        
+        if is_categorical:
+            # Check if binary classification
+            is_binary = target_data.nunique() == 2
+            
+            # Random Forest works for all classification
+            available_models.append("Random Forest")
+            
+            # Logistic Regression only for binary classification
+            if is_binary:
+                available_models.append("Logistic Regression")
+        else:
+            # For numeric targets, offer regression models
+            available_models.extend(["Linear Regression", "Random Forest"])
+            
+        return {
+            "available_models": available_models,
+            "target_info": {
+                "is_categorical": is_categorical,
+                "is_binary": is_binary if is_categorical else False
+            }
+        }
+        
     except Exception as e:
         print("Error:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -577,6 +938,7 @@ plt.switch_backend("Agg")
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
+
 @app.post("/preview-data/")
 async def preview_data(file: UploadFile = File(...)):
     """Reads the uploaded CSV file and returns the first few rows as a preview."""
@@ -597,7 +959,6 @@ async def preview_data(file: UploadFile = File(...)):
     except Exception as e:
         logging.error(f"Error reading file: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
-
 
 
 @app.post("/custom-visualization/")
@@ -634,37 +995,74 @@ async def custom_visualization(
                 return {"error": "Y-axis is required for pie chart"}
             data = df[y_columns[0]].value_counts()
             explode_values = [explode] * len(data)  # Apply explode to all slices
-            plt.pie(data, labels=data.index, autopct="%1.1f%%", colors=color_list, explode=explode_values, startangle=90)
+            plt.pie(
+                data,
+                labels=data.index,
+                autopct="%1.1f%%",
+                colors=color_list,
+                explode=explode_values,
+                startangle=90,
+            )
             plt.axis("equal")  # Ensure the pie chart is circular
         elif plot_type == "histogram":
             if not y_columns:
                 return {"error": "Y-axis is required for histogram"}
-            sns.histplot(df[y_columns[0]], color=color_list[0] if color_list else "#1f77b4", kde=True, bins=bins)
+            sns.histplot(
+                df[y_columns[0]],
+                color=color_list[0] if color_list else "#1f77b4",
+                kde=True,
+                bins=bins,
+            )
         elif plot_type == "bar":
             if not x_columns or not y_columns:
                 return {"error": "X-axis and Y-axis are required for bar chart"}
             for i, y_col in enumerate(y_columns):
-                sns.barplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+                sns.barplot(
+                    x=df[x_columns[0]],
+                    y=df[y_col],
+                    color=color_list[i] if i < len(color_list) else "blue",
+                    label=y_col,
+                )
         elif plot_type == "scatter":
             if not x_columns or not y_columns:
                 return {"error": "X-axis and Y-axis are required for scatter plot"}
             for i, y_col in enumerate(y_columns):
-                sns.scatterplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+                sns.scatterplot(
+                    x=df[x_columns[0]],
+                    y=df[y_col],
+                    color=color_list[i] if i < len(color_list) else "blue",
+                    label=y_col,
+                )
         elif plot_type == "line":
             if not x_columns or not y_columns:
                 return {"error": "X-axis and Y-axis are required for line graph"}
             for i, y_col in enumerate(y_columns):
-                sns.lineplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+                sns.lineplot(
+                    x=df[x_columns[0]],
+                    y=df[y_col],
+                    color=color_list[i] if i < len(color_list) else "blue",
+                    label=y_col,
+                )
         elif plot_type == "box":
             if not x_columns or not y_columns:
                 return {"error": "X-axis and Y-axis are required for box plot"}
             for i, y_col in enumerate(y_columns):
-                sns.boxplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+                sns.boxplot(
+                    x=df[x_columns[0]],
+                    y=df[y_col],
+                    color=color_list[i] if i < len(color_list) else "blue",
+                    label=y_col,
+                )
         elif plot_type == "violin":
             if not x_columns or not y_columns:
                 return {"error": "X-axis and Y-axis are required for violin plot"}
             for i, y_col in enumerate(y_columns):
-                sns.violinplot(x=df[x_columns[0]], y=df[y_col], color=color_list[i] if i < len(color_list) else "blue", label=y_col)
+                sns.violinplot(
+                    x=df[x_columns[0]],
+                    y=df[y_col],
+                    color=color_list[i] if i < len(color_list) else "blue",
+                    label=y_col,
+                )
         else:
             return {"error": "Invalid plot type"}
 

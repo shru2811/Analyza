@@ -58,10 +58,10 @@ const App = () => {
               <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 {columns.map(column => (
                   <td key={`${rowIndex}-${column}`} className="border p-2 text-sm">
-                    {row[column] !== undefined ? 
-                      (typeof row[column] === 'number' ? 
-                        row[column].toFixed(2) : 
-                        String(row[column])) : 
+                    {row[column] !== undefined ?
+                      (typeof row[column] === 'number' ?
+                        row[column].toFixed(2) :
+                        String(row[column])) :
                       'N/A'}
                   </td>
                 ))}
@@ -72,11 +72,11 @@ const App = () => {
       </div>
     );
   };
-  
+
   // Function to parse and preview CSV data
   const parseCSVPreview = (file) => {
     setIsPreviewLoading(true);
-    
+
     Papa.parse(file, {
       header: true,
       preview: 5, // Preview first 5 rows
@@ -97,7 +97,7 @@ const App = () => {
       }
     });
   };
-  
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "text/csv": [".csv"] },
     onDrop: (acceptedFiles) => {
@@ -171,7 +171,14 @@ const App = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h2 className="text-3xl font-semibold text-gray-900 mb-8 text-center">
-            {analysisType === "LLM" ? "Data Analysis with LLM" : "Custom Data Analysis"}
+            {analysisType === "LLM"
+              ? "Data Analysis with LLM"
+              : analysisType === "CustomAnalysis"
+                ? "Custom Data Analysis"
+                : analysisType === "CustomVisualization"
+                  ? "Custom Visualization"
+                  : "Default Analysis"}
+
           </h2>
 
           {error && (
@@ -190,7 +197,7 @@ const App = () => {
               </div>
 
               {file && <p className="text-center mt-2 text-gray-600">Selected file: {file.name}</p>}
-              
+
               {/* Data Preview Section */}
               {file && (
                 <div className="mt-6">
@@ -211,7 +218,7 @@ const App = () => {
                   )}
                 </div>
               )}
-              
+
               <textarea
                 rows="4"
                 value={query}
@@ -237,11 +244,11 @@ const App = () => {
               {/* {graphs && <img src={graphs} alt="Generated Visualization" className="" style={{ width: "auto", height: "600px" }} />} */}
               {graphs && (
                 <div className="mt-8 flex justify-center">
-                  <img 
-                    src={graphs} 
-                    alt="Generated Visualization" 
+                  <img
+                    src={graphs}
+                    alt="Generated Visualization"
                     style={{ width: "auto", height: "600px" }}
-                    className="shadow-md rounded-lg" 
+                    className="shadow-md rounded-lg"
                   />
                 </div>
               )}
@@ -278,7 +285,7 @@ const App = () => {
           {/* Custom Visualization UI */}
           {analysisType === "CustomVisualization" && (
             <>
-              <CustomVisualization/>
+              <CustomVisualization />
             </>
           )}
         </div>

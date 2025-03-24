@@ -183,7 +183,6 @@ const CustomVisualization = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-5">
-      <h1 className="text-3xl font-bold text-center mb-4">Custom Visualization Dashboard</h1>
 
       {/* File Upload Section with Dropzone */}
       <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
