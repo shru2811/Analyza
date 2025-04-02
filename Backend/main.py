@@ -545,103 +545,231 @@ async def predictive_analysis(
 
 
 # Helper function to suggest target and features
-def suggest_target_and_features(df):
-    """
-    Suggest appropriate target and feature columns based on dataset analysis.
+# def suggest_target_and_features(df):
+#     """
+#     Suggest appropriate target and feature columns based on dataset analysis.
     
-    This function analyzes the dataframe to:
-    1. Identify potential target columns (categorical with few unique values or numeric columns)
-    2. Suggest relevant features based on data types and correlations
+#     This function analyzes the dataframe to:
+#     1. Identify potential target columns (categorical with few unique values or numeric columns)
+#     2. Suggest relevant features based on data types and correlations
+#     """
+#     suggestions = {
+#         "potential_targets": [],
+#         "suggested_features": {},
+#         "column_types": {}
+#     }
+    
+#     # Analyze columns
+#     for column in df.columns:
+#         # Get data type and unique value count
+#         dtype = df[column].dtype
+#         unique_count = df[column].nunique()
+#         non_null_count = df[column].count()
+#         total_count = len(df)
+#         null_percentage = (1 - non_null_count / total_count) * 100 if total_count > 0 else 0
+        
+#         # Store column type info
+#         if pd.api.types.is_numeric_dtype(dtype):
+#             col_type = "numeric"
+#         elif pd.api.types.is_categorical_dtype(dtype) or pd.api.types.is_object_dtype(dtype):
+#             if unique_count <= 10:  # Reasonable threshold for classification target
+#                 col_type = "categorical"
+#             else:
+#                 col_type = "text"  # Many unique values suggest text data
+#         else:
+#             col_type = "other"
+            
+#         suggestions["column_types"][column] = {
+#             "type": col_type,
+#             "unique_values": int(unique_count),
+#             "null_percentage": float(null_percentage),
+#             "is_binary": unique_count == 2
+#         }
+        
+#         # Identify potential target columns
+#         # Categorical columns with few unique values are good classification targets
+#         if col_type == "categorical" and 2 <= unique_count <= 10 and null_percentage < 5:
+#             suggestions["potential_targets"].append({
+#                 "column": column,
+#                 "type": "classification",
+#                 "unique_values": int(unique_count),
+#                 "is_binary": unique_count == 2
+#             })
+#         # Numeric columns with sufficient variance can be regression targets
+#         elif col_type == "numeric" and unique_count > 10 and null_percentage < 5:
+#             suggestions["potential_targets"].append({
+#                 "column": column,
+#                 "type": "regression",
+#                 "unique_values": int(unique_count)
+#             })
+    
+#     # For each potential target, suggest appropriate features
+#     for target_info in suggestions["potential_targets"]:
+#         target = target_info["column"]
+#         target_type = target_info["type"]
+        
+#         # Features should exclude the target
+#         potential_features = [col for col in df.columns if col != target]
+        
+#         # Filter features based on data quality
+#         good_features = []
+#         for feature in potential_features:
+#             feature_type = suggestions["column_types"][feature]["type"]
+#             null_percentage = suggestions["column_types"][feature]["null_percentage"]
+            
+#             # Skip columns with too many missing values
+#             if null_percentage > 30:
+#                 continue
+                
+#             # For regression targets, numeric features are often most useful
+#             if target_type == "regression" and feature_type == "numeric":
+#                 good_features.append(feature)
+#             # For categorical targets, both numeric and categorical features can be useful
+#             elif target_type == "classification":
+#                 good_features.append(feature)
+        
+#         suggestions["suggested_features"][target] = good_features
+    
+#     # Find the best target if there are multiple options
+#     if suggestions["potential_targets"]:
+#         # Prioritize regression targets with many numeric features or 
+#         # classification targets with a balanced mix of features
+#         best_target = max(
+#             suggestions["potential_targets"],
+#             key=lambda t: len(suggestions["suggested_features"][t["column"]])
+#         )
+#         suggestions["recommended_target"] = best_target["column"]
+#         suggestions["recommended_features"] = suggestions["suggested_features"][best_target["column"]]
+    
+#     return suggestions
+
+def suggest_target_and_features(df, api_key=None):
     """
+    Suggest appropriate target and feature columns using an LLM model.
+    
+    This function uses Gemini to analyze the dataframe and suggest:
+    1. Potential target columns
+    2. Relevant features
+    3. Reasoning behind the suggestions
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input dataframe to analyze
+    api_key : str, optional
+        Google Generative AI API key (if not already configured)
+    
+    Returns:
+    --------
+    dict
+        A comprehensive dictionary containing:
+        - potential_targets: List of suggested target columns
+        - suggested_features: Dict of features for each potential target
+        - column_types: Detailed information about each column
+        - reasoning: Explanation of the suggestions
+    """
+    
+    # Prepare dataset information for the LLM
+    column_info = {}
+    for column in df.columns:
+        column_info[column] = {
+            "dtype": str(df[column].dtype),
+            "unique_values": int(df[column].nunique()),
+            "non_null_count": int(df[column].count()),
+            "total_count": len(df),
+            "null_percentage": float((1 - df[column].count() / len(df)) * 100)
+        }
+    
+    # Construct prompt for Gemini
+    prompt = f"""
+    You are an expert data scientist analyzing a dataset to suggest machine learning targets and features.
+
+    Dataset Overview:
+    {json.dumps(column_info, indent=2)}
+
+    Tasks:
+    1. Identify potential target columns for:
+       a) Classification (categorical targets with few unique values)
+       b) Regression (numeric targets with continuous distribution)
+    
+    2. For each potential target, suggest:
+       - Appropriate features
+       - Reasoning for feature selection
+       - Potential machine learning approach (classification/regression)
+
+    3. Provide a detailed explanation of your selection process.
+
+    Return a structured JSON response with:
+    {{
+        "potential_targets": [
+            {{
+                "column": "column_name",
+                "type": "classification/regression",
+                "reasoning": "Why this column is a good target"
+            }}
+        ],
+        "feature_suggestions": {{
+            "target_column": {{
+                "features": ["feature1", "feature2"],
+                "reasoning": "Why these features are relevant"
+            }}
+        }},
+        "overall_reasoning": "Comprehensive explanation of analysis"
+    }}
+    """
+    
+    # Use Gemini to analyze the dataset
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    response = model.generate_content(prompt)
+    
+    # Parse the LLM response
+    try:
+        llm_suggestions = json.loads(response.text.strip())
+    except json.JSONDecodeError:
+        # Fallback if JSON parsing fails
+        return {
+            "error": "Failed to parse LLM response",
+            "raw_response": response.text
+        }
+    
+    # Structure the suggestions in the format of the original function
     suggestions = {
         "potential_targets": [],
         "suggested_features": {},
-        "column_types": {}
+        "column_types": {},
+        "reasoning": llm_suggestions.get("overall_reasoning", "")
     }
     
-    # Analyze columns
-    for column in df.columns:
-        # Get data type and unique value count
-        dtype = df[column].dtype
-        unique_count = df[column].nunique()
-        non_null_count = df[column].count()
-        total_count = len(df)
-        null_percentage = (1 - non_null_count / total_count) * 100 if total_count > 0 else 0
-        
-        # Store column type info
-        if pd.api.types.is_numeric_dtype(dtype):
-            col_type = "numeric"
-        elif pd.api.types.is_categorical_dtype(dtype) or pd.api.types.is_object_dtype(dtype):
-            if unique_count <= 10:  # Reasonable threshold for classification target
-                col_type = "categorical"
-            else:
-                col_type = "text"  # Many unique values suggest text data
-        else:
-            col_type = "other"
-            
-        suggestions["column_types"][column] = {
-            "type": col_type,
-            "unique_values": int(unique_count),
-            "null_percentage": float(null_percentage),
-            "is_binary": unique_count == 2
+    # Process potential targets
+    for target in llm_suggestions.get("potential_targets", []):
+        target_info = {
+            "column": target["column"],
+            "type": target["type"],
+            "reasoning": target.get("reasoning", "")
         }
+        suggestions["potential_targets"].append(target_info)
         
-        # Identify potential target columns
-        # Categorical columns with few unique values are good classification targets
-        if col_type == "categorical" and 2 <= unique_count <= 10 and null_percentage < 5:
-            suggestions["potential_targets"].append({
-                "column": column,
-                "type": "classification",
-                "unique_values": int(unique_count),
-                "is_binary": unique_count == 2
-            })
-        # Numeric columns with sufficient variance can be regression targets
-        elif col_type == "numeric" and unique_count > 10 and null_percentage < 5:
-            suggestions["potential_targets"].append({
-                "column": column,
-                "type": "regression",
-                "unique_values": int(unique_count)
-            })
+        # Process feature suggestions
+        if target["column"] in llm_suggestions.get("feature_suggestions", {}):
+            feature_info = llm_suggestions["feature_suggestions"][target["column"]]
+            suggestions["suggested_features"][target["column"]] = feature_info.get("features", [])
     
-    # For each potential target, suggest appropriate features
-    for target_info in suggestions["potential_targets"]:
-        target = target_info["column"]
-        target_type = target_info["type"]
-        
-        # Features should exclude the target
-        potential_features = [col for col in df.columns if col != target]
-        
-        # Filter features based on data quality
-        good_features = []
-        for feature in potential_features:
-            feature_type = suggestions["column_types"][feature]["type"]
-            null_percentage = suggestions["column_types"][feature]["null_percentage"]
-            
-            # Skip columns with too many missing values
-            if null_percentage > 30:
-                continue
-                
-            # For regression targets, numeric features are often most useful
-            if target_type == "regression" and feature_type == "numeric":
-                good_features.append(feature)
-            # For categorical targets, both numeric and categorical features can be useful
-            elif target_type == "classification":
-                good_features.append(feature)
-        
-        suggestions["suggested_features"][target] = good_features
+    # Add column type information (you might want to enhance this based on LLM insights)
+    for column in df.columns:
+        suggestions["column_types"][column] = {
+            "type": str(df[column].dtype),
+            "unique_values": int(df[column].nunique()),
+            "null_percentage": float((1 - df[column].count() / len(df)) * 100)
+        }
     
-    # Find the best target if there are multiple options
-    if suggestions["potential_targets"]:
-        # Prioritize regression targets with many numeric features or 
-        # classification targets with a balanced mix of features
-        best_target = max(
-            suggestions["potential_targets"],
-            key=lambda t: len(suggestions["suggested_features"][t["column"]])
-        )
-        suggestions["recommended_target"] = best_target["column"]
-        suggestions["recommended_features"] = suggestions["suggested_features"][best_target["column"]]
+    # If no targets were found, provide this information
+    if not suggestions["potential_targets"]:
+        suggestions["reasoning"] = "No clear targets identified by the LLM analysis."
     
     return suggestions
+
+# Example usage
+# result = suggest_target_and_features(df, api_key='your_google_api_key')
 
 
 # Helper endpoint to get available models based on target type

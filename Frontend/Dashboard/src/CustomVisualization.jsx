@@ -182,11 +182,12 @@ const CustomVisualization = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-5">
+    <div className="min-h-screen  p-5">
+      <p className="pb-4 px-8 text-center">Transform your data into meaningful visuals. Choose from multiple chart types, customize axes, apply filters, and highlight key trends. All visualizations are interactive - hover for details, zoom into areas of interest, or export for presentations</p>
 
       {/* File Upload Section with Dropzone */}
-      <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
-        <h2 className="text-lg font-semibold mb-4">Upload Your Data</h2>
+      <div className="">
+        {/* <h2 className="text-lg font-semibold mb-4 text-center">Upload Your Data</h2> */}
         
         <div 
           {...getRootProps()} 
@@ -194,7 +195,7 @@ const CustomVisualization = () => {
         >
           <input {...getInputProps()} />
           <p className="text-gray-600 mb-2">
-            {file ? `Selected: ${file.name}` : "Upload a CSV file or drag & drop"}
+            {file ? `Selected: ${file.name}` : "Upload a CSV file or drag & drop (Upto 200MB)"}
           </p>
           <p className="text-sm text-gray-500">
             Supports .csv files
