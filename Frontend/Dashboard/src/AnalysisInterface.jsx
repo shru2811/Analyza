@@ -147,7 +147,7 @@ const AnalysisInterface = ({ analysisType }) => {
         {/* LLM Analysis UI */}
         {analysisType === "LLM" && (
           <>
-          <p className="pb-4 px-8 text-center">Leverage the power of AI to explore your data through natural language. Our LLM-powered analysis uses Google's Gemini 1.5 to generate instant insights, detect patterns, and answer complex questions about your dataset - no coding required. Simply upload your data and ask questions in plain English.</p>
+          <p className="pb-4 px-8 text-center">Leverage the power of AI to explore your data through natural language. Our LLM-powered analysis uses Google's Gemini 2.0 to generate instant insights, detect patterns, and answer complex questions about your dataset - no coding required. Simply upload your data and ask questions in plain English.</p>
             {/* File Upload Area */}
             <div {...getRootProps()} className="border-2 border-dashed rounded-lg p-12 text-center hover:border-indigo-500">
               <input {...getInputProps()} />
@@ -215,7 +215,7 @@ const AnalysisInterface = ({ analysisType }) => {
         {/* Custom Analysis UI */}
         {analysisType === "CustomAnalysis" && (
           <>
-          <p className="pb-4 px-8 text-center">Perform advanced analytical operations with just a few clicks. Select between predictive modeling (forecasting trends) or diagnostic analysis (identifying correlations and anomalies). The system automatically handles data preprocessing and model selection for accurate results.</p>
+          <p className="pb-4 px-8 text-center">Perform advanced analytical operations with just a few clicks. Select between predictive modeling (forecasting trends with AI suggestions for choosing features and target variables) or diagnostic analysis (identifying correlations and anomalies). The system automatically handles data preprocessing and model selection for accurate results.</p>
             <select
               className="w-full border rounded-lg p-4 mt-4"
               value={customAnalysisType}

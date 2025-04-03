@@ -15,18 +15,16 @@ function PredictiveAnalysis() {
   const [error, setError] = useState(null);
   const [prediction, setPrediction] = useState({});
   const [predictionResult, setPredictionResult] = useState(null);
-  
-  // States for the suggestions feature
   const [useSuggestions, setUseSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState(null);
   const [targetInfo, setTargetInfo] = useState({ is_categorical: false, is_binary: false });
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: { "text/csv": [".csv"] },
     onDrop: async (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         setFile(acceptedFiles[0]);
-        // Automatically upload file when dropped
         await handleUpload(acceptedFiles[0]);
       }
     },
@@ -40,7 +38,6 @@ function PredictiveAnalysis() {
 
     setIsLoading(true);
     setError(null);
-    // Reset states when a new file is uploaded
     setTargetVariable("");
     setFeatures([]);
     setSelectedModel("");
@@ -52,7 +49,6 @@ function PredictiveAnalysis() {
     formData.append("file", selectedFile);
 
     try {
-      // Send file to the backend for processing
       const response = await axios.post("http://localhost:8080/upload-columns", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -61,8 +57,6 @@ function PredictiveAnalysis() {
 
       if (response.data.columns) {
         setColumns(response.data.columns);
-
-        // Set preview data if available
         if (response.data.preview) {
           setPreview(response.data.preview);
         }
@@ -77,13 +71,11 @@ function PredictiveAnalysis() {
     }
   };
 
-  // Handle toggle for suggestions
   const handleToggleSuggestions = async (value) => {
     setUseSuggestions(value);
     
     if (value && file) {
-      // Request suggestions from the backend
-      setIsLoading(true);
+      setLoadingSuggestions(true);
       try {
         const formData = new FormData();
         formData.append("file", file);
@@ -96,11 +88,11 @@ function PredictiveAnalysis() {
         console.log("Suggestions:", response.data);
         setSuggestions(response.data);
         
-        // If suggestions are available, apply them immediately
+        // Apply the first recommended target if available
         if (response.data.recommended_target) {
           setTargetVariable(response.data.recommended_target);
           
-          // Set the recommended features
+          // Set the recommended features for this target
           if (response.data.recommended_features) {
             setFeatures(response.data.recommended_features);
           }
@@ -113,29 +105,11 @@ function PredictiveAnalysis() {
         setError("Failed to get suggestions. Please try again.");
         setUseSuggestions(false);
       } finally {
-        setIsLoading(false);
+        setLoadingSuggestions(false);
       }
-    } else {
-      // If toggling off suggestions, allow manual selection but keep current selections
-      // We don't reset values here to maintain the user's current work
     }
   };
 
-  // Effect to apply suggestions when they change or when useSuggestions is toggled
-  useEffect(() => {
-    if (useSuggestions && suggestions) {
-      // Apply suggestions when toggle is turned on and suggestions are available
-      if (suggestions.recommended_target) {
-        setTargetVariable(suggestions.recommended_target);
-      }
-      
-      if (suggestions.recommended_features) {
-        setFeatures(suggestions.recommended_features);
-      }
-    }
-  }, [useSuggestions, suggestions]);
-
-  // Fetch available models based on target type
   const fetchAvailableModels = async (target) => {
     if (!target || !file) return;
     
@@ -153,7 +127,7 @@ function PredictiveAnalysis() {
       
       if (response.data.available_models?.length > 0) {
         setAvailableModels(response.data.available_models);
-        setSelectedModel(response.data.available_models[0]); // Select the first available model
+        setSelectedModel(response.data.available_models[0]);
         setTargetInfo(response.data.target_info);
       } else {
         setAvailableModels([]);
@@ -167,7 +141,6 @@ function PredictiveAnalysis() {
     }
   };
 
-  // When target variable changes, fetch available models
   useEffect(() => {
     if (targetVariable) {
       fetchAvailableModels(targetVariable);
@@ -201,12 +174,10 @@ function PredictiveAnalysis() {
       console.log("Analysis results:", response.data);
       setResults(response.data);
       
-      // Update target info if available in response
       if (response.data.target_info) {
         setTargetInfo(response.data.target_info);
       }
 
-      // Initialize prediction state with feature fields
       const initialPrediction = {};
       features.forEach(feature => {
         initialPrediction[feature] = "";
@@ -259,7 +230,6 @@ function PredictiveAnalysis() {
     }
   };
 
-  // Helper function to render data preview table
   const renderDataPreview = () => {
     if (!preview || preview.length === 0) {
       return <p className="text-gray-600">No preview data available.</p>;
@@ -297,14 +267,13 @@ function PredictiveAnalysis() {
     );
   };
 
-  // Render column type information from suggestions
   const renderColumnTypeInfo = (column) => {
     if (!suggestions?.column_types || !suggestions.column_types[column]) return null;
     
     const colInfo = suggestions.column_types[column];
     return (
       <span className="text-xs text-gray-500 ml-2">
-        ({colInfo.type}{colInfo.is_binary ? ", binary" : ""}, {colInfo.unique_values} unique values)
+        ({colInfo.type}, {colInfo.unique_values} unique values)
       </span>
     );
   };
@@ -342,20 +311,52 @@ function PredictiveAnalysis() {
             <p className="text-xs text-gray-500 mt-1">Showing up to 5 rows of data</p>
           </div>
           
-          {/* Suggestions Toggle */}
-          <div className="flex items-center">
-            <label className="mr-2 text-gray-700">Use suggested target and features?</label>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer"
-                checked={useSuggestions}
-                onChange={(e) => handleToggleSuggestions(e.target.checked)}
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
+          {/* Suggestions Section */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-medium text-gray-900">AI Suggestions</h2>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={useSuggestions}
+                  onChange={(e) => handleToggleSuggestions(e.target.checked)}
+                  disabled={loadingSuggestions}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className="ml-2 text-sm font-medium text-gray-700">
+                  {useSuggestions ? 'Using AI Suggestions' : 'Enable AI Suggestions'}
+                </span>
+              </label>
+            </div>
+
+            {loadingSuggestions && (
+              <p className="text-sm text-gray-600">Generating AI suggestions...</p>
+            )}
+
+            {suggestions && useSuggestions && (
+              <div className="mt-2 space-y-2">
+                {suggestions.recommended_target && (
+                  <p className="text-sm text-indigo-600">
+                    <span className="font-medium">Recommended Target:</span> {suggestions.recommended_target}
+                  </p>
+                )}
+                {suggestions.recommended_features && (
+                  <p className="text-sm text-indigo-600">
+                    <span className="font-medium">Recommended Features:</span> {suggestions.recommended_features.join(", ")}
+                  </p>
+                )}
+                {suggestions.reasoning && (
+                  <div className="mt-2 p-2 bg-white rounded border text-sm text-gray-700">
+                    <p className="font-medium">AI Reasoning:</p>
+                    <p>{suggestions.reasoning}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
+          {/* Target Variable Selection */}
           <div>
             <h2 className="text-lg font-medium text-gray-900 mb-2">Select Target Variable</h2>
             <select
@@ -365,21 +366,21 @@ function PredictiveAnalysis() {
               disabled={useSuggestions && suggestions?.recommended_target}
             >
               <option value="">Select</option>
-              {columns.map((col) => (
-                <option key={col} value={col}>
-                  {col} {renderColumnTypeInfo(col)}
-                </option>
-              ))}
+              {suggestions?.potential_targets?.length > 0 && useSuggestions
+                ? suggestions.potential_targets.map((target) => (
+                    <option key={target.column} value={target.column}>
+                      {target.column} ({target.type})
+                    </option>
+                  ))
+                : columns.map((col) => (
+                    <option key={col} value={col}>
+                      {col} {renderColumnTypeInfo(col)}
+                    </option>
+                  ))}
             </select>
-            {suggestions?.recommended_target && useSuggestions && (
-              <p className="mt-2 text-sm text-indigo-600">
-                Recommended target: {suggestions.recommended_target} 
-                {suggestions.column_types[suggestions.recommended_target] && 
-                  ` (${suggestions.column_types[suggestions.recommended_target].type})`}
-              </p>
-            )}
           </div>
 
+          {/* Features Selection */}
           <div>
             <h2 className="text-lg font-medium text-gray-900 mb-2">Select Features</h2>
             <select
@@ -400,13 +401,9 @@ function PredictiveAnalysis() {
                 Selected features: {features.join(", ")}
               </p>
             )}
-            {suggestions?.recommended_features && useSuggestions && (
-              <p className="mt-2 text-sm text-indigo-600">
-                Recommended features: {suggestions.recommended_features.join(", ")}
-              </p>
-            )}
           </div>
 
+          {/* Model Selection */}
           <div>
             <h2 className="text-lg font-medium text-gray-900 mb-2">Select Model</h2>
             <select
@@ -423,17 +420,18 @@ function PredictiveAnalysis() {
             {targetInfo.is_categorical && (
               <p className="mt-2 text-sm text-gray-600">
                 {targetInfo.is_binary 
-                  ? "The target is binary categorical - both Logistic Regression and Random Forest are available."
-                  : "The target is multi-class categorical - only Random Forest is available."}
+                  ? "The target is binary categorical - available models: Logistic Regression, KNN, Naive Bayes, Random Forest, AdaBoost, Gradient Boost, XGBoost"
+                  : "The target is multi-class categorical - available models: KNN, Naive Bayes, Random Forest, AdaBoost, Gradient Boost, XGBoost"}
               </p>
             )}
             {!targetInfo.is_categorical && targetVariable && (
               <p className="mt-2 text-sm text-gray-600">
-                The target is numeric - both Linear Regression and Random Forest are available.
+              The target is numeric - available models: Linear Regression, Polynomial Regression, KNN, Random Forest, AdaBoost, Gradient Boost, XGBoost
               </p>
             )}
           </div>
 
+          {/* Analyze Button */}
           <button
             onClick={handleAnalyze}
             className="w-full bg-indigo-600 text-white p-3 rounded-md hover:bg-indigo-700 transition disabled:bg-indigo-300"
@@ -442,6 +440,7 @@ function PredictiveAnalysis() {
             {isLoading ? "Analyzing..." : "Analyze Data"}
           </button>
 
+          {/* Results Section */}
           {results && (
             <div className="space-y-6">
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -493,26 +492,6 @@ function PredictiveAnalysis() {
                       </div>
                     </div>
                   )}
-                  {/* {results.confusion_matrix && (
-                    <div className="mt-4">
-                      <h3 className="text-md font-medium">Confusion Matrix:</h3>
-                      <div className="overflow-x-auto mt-2">
-                        <table className="min-w-full border-collapse">
-                          <tbody>
-                            {results.confusion_matrix.map((row, i) => (
-                              <tr key={i}>
-                                {row.map((cell, j) => (
-                                  <td key={j} className="border p-2 text-center">
-                                    {cell}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )} */}
                 </div>
               </div>
 
@@ -529,6 +508,7 @@ function PredictiveAnalysis() {
                 </div>
               )}
 
+              {/* Prediction Section */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Make Prediction</h2>
                 <div className="space-y-4">

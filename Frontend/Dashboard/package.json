@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.8",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "dashboard": "file:",
     "papaparse": "^5.5.2",
     "react": "^19.0.0",

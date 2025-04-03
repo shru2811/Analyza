@@ -219,8 +219,6 @@ function DiagnosticAnalysis() {
 
   return (
     <div className="space-y-6">
-      <p className="pb-4 px-8 text-center">Leverage the power of AI to explore your data through natural language. Our LLM-powered analysis uses Google's Gemini 1.5 to generate instant insights, detect patterns, and answer complex questions about your dataset - no coding required. Simply upload your data and ask questions in plain English.</p>
-
       {/* File Upload Area */}
       <div 
         {...getRootProps()} 
