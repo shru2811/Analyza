@@ -36,7 +36,7 @@ const CustomVisualization = () => {
 
     try {
       // Check the correct API endpoint URL - ensure it matches your backend
-      const response = await axios.post("http://localhost:8080/preview-data/", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/preview-data/", formData, {
         headers: { 
           "Content-Type": "multipart/form-data" 
         },
@@ -130,7 +130,7 @@ const CustomVisualization = () => {
       params.append("explode", explode);
       params.append("bins", bins);
       
-      const url = `http://localhost:8080/custom-visualization/?${params.toString()}`;
+      const url = `https://analyza-server.onrender.com/custom-visualization/?${params.toString()}`;
       console.log("Request URL:", url);
       
       const response = await axios.post(url, formData, {

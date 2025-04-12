@@ -49,7 +49,7 @@ function PredictiveAnalysis() {
     formData.append("file", selectedFile);
 
     try {
-      const response = await axios.post("http://localhost:8080/upload-columns", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/upload-columns", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -81,7 +81,7 @@ function PredictiveAnalysis() {
         formData.append("file", file);
         formData.append("suggest", "true");
         
-        const response = await axios.post("http://localhost:8080/predictive-analysis", formData, {
+        const response = await axios.post("https://analyza-server.onrender.com/predictive-analysis", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         
@@ -119,7 +119,7 @@ function PredictiveAnalysis() {
       formData.append("file", file);
       formData.append("target_column", target);
       
-      const response = await axios.post("http://localhost:8080/get-available-models", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/get-available-models", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       
@@ -167,7 +167,7 @@ function PredictiveAnalysis() {
       formData.append("model", selectedModel);
       formData.append("suggest", "false");
 
-      const response = await axios.post("http://localhost:8080/predictive-analysis", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/predictive-analysis", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -216,7 +216,7 @@ function PredictiveAnalysis() {
       formData.append("model", selectedModel);
       formData.append("prediction_values", JSON.stringify(prediction));
 
-      const response = await axios.post("http://localhost:8080/make-prediction", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/make-prediction", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

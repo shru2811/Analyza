@@ -39,7 +39,7 @@ function DiagnosticAnalysis() {
 
     try {
       // Send file to the backend for processing
-      const response = await axios.post("http://localhost:8080/upload-columns", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/upload-columns", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       
@@ -81,7 +81,7 @@ function DiagnosticAnalysis() {
         formData.append("target_variable", targetVariable);
       }
 
-      const response = await axios.post("http://localhost:8080/diagnostic-analysis", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com/diagnostic-analysis", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       
