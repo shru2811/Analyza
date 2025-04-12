@@ -288,10 +288,6 @@ const Documentation = () => {
                       <span className="bg-blue-100 text-blue-800 p-2 rounded mr-3">FastAPI</span>
                       <span className="text-gray-700">Modern, fast web framework for building APIs with Python</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="bg-blue-100 text-blue-800 p-2 rounded mr-3">MongoDB</span>
-                      <span className="text-gray-700">NoSQL database for storing user data and analysis results</span>
-                    </li>
                   </ul>
                 </div>
 
