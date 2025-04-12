@@ -385,7 +385,7 @@ async def predictive_analysis(
         elif model == "AdaBoost":
             if is_categorical:  # Classification
                 base_estimator = DecisionTreeClassifier(max_depth=1)
-                model_instance = AdaBoostClassifier(base_estimator=base_estimator, random_state=42)
+                model_instance = AdaBoostClassifier(estimator=base_estimator, random_state=42)
                 model_instance.fit(X_train, y_train)
                 y_pred = model_instance.predict(X_test)
                 
