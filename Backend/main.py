@@ -47,7 +47,7 @@ genai.configure(api_key=api_key)
 # Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["https://analyza-dashboard.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
