@@ -107,7 +107,7 @@ const AnalysisInterface = ({ analysisType }) => {
     formData.append("query", query);
 
     try {
-      const response = await axios.post("http://localhost:8080/analyze", formData, {
+      const response = await axios.post("https://analyza-server.onrender.com", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
