@@ -6,4 +6,3 @@ Backend/__pycache__/
 
 # Frontend ignores
 Frontend/node_modules/
-Frontend/dist/
