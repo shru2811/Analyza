@@ -1,0 +1,9 @@
+# Backend ignores
+Backend/.env
+Backend/__pycache__/
+*.pyc
+.DS_Store
+
+# Frontend ignores
+Frontend/node_modules/
+Frontend/dist/

@@ -37,10 +37,12 @@ from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, GradientBoos
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from xgboost import XGBClassifier, XGBRegressor # type: ignore
 import os
+from dotenv import load_dotenv
 app = FastAPI()
-
+load_dotenv() 
+api_key = os.getenv("GENAI_API_KEY") 
 # Configure Gemini API Key
-genai.configure(api_key="AIzaSyCuprg9AkogSSWpri0cbKpvFUVJpz_X2Vk")
+genai.configure(api_key=api_key)
 
 # Allow frontend to communicate with backend
 app.add_middleware(
