@@ -68,7 +68,8 @@ const App = () => {
       <footer className="bg-white mt-12">
         <div className="max-w-7xl mx-auto py-8 px-4 overflow-hidden sm:px-6 lg:px-8">
           <p className="text-center text-base text-gray-400">
-            &copy; {new Date().getFullYear()} Analyza. All rights reserved.
+            Please Provide your valuable feedback so that we can improve more 😊
+            <a href="https://forms.gle/W9QT6qyjbeKXwXLx9">Click Here</a>
           </p>
         </div>
       </footer>
