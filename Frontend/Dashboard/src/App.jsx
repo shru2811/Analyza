@@ -69,7 +69,7 @@ const App = () => {
         <div className="max-w-7xl mx-auto py-8 px-4 overflow-hidden sm:px-6 lg:px-8">
           <p className="text-center text-base text-gray-400">
             Please Provide your valuable feedback so that we can improve more 😊
-            <a href="https://forms.gle/W9QT6qyjbeKXwXLx9">Click Here</a>
+            <a href="https://forms.gle/W9QT6qyjbeKXwXLx9" target="blank">Click Here</a>
           </p>
         </div>
       </footer>
