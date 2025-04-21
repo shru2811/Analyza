@@ -163,7 +163,6 @@ const Documentation = () => {
                     <span className="bg-gray-100 px-3 py-1 rounded-full text-sm text-center">Pie Charts</span>
                     <span className="bg-gray-100 px-3 py-1 rounded-full text-sm text-center">Box Plots</span>
                     <span className="bg-gray-100 px-3 py-1 rounded-full text-sm text-center">Violin Plots</span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-full text-sm text-center">Heatmaps</span>
                   </div>
                 </div>
 
@@ -221,7 +220,11 @@ const Documentation = () => {
                       <ul className="list-disc pl-6 space-y-1 text-gray-700">
                         <li><span className="font-medium">Linear Regression:</span> For continuous value prediction</li>
                         <li><span className="font-medium">Logistic Regression:</span> For binary classification</li>
+                        <li><span className="font-medium">Naive Bayes:</span> For binary classification</li>
+                        <li><span className="font-medium">Polynomial Regression:</span> For continuous value prediction</li>
                         <li><span className="font-medium">Random Forest:</span> For both classification and regression</li>
+                        <li><span className="font-medium">KNN:</span> For both classification and regression</li>
+                        <li><span className="font-medium">Different Boosting Technique:</span> For both classification and regression</li>
                         <li>Feature selection interface</li>
                         <li>Performance metrics display</li>
                       </ul>

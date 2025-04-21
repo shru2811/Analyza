@@ -33,14 +33,20 @@ from typing import Optional
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.ensemble import (
+    AdaBoostClassifier,
+    AdaBoostRegressor,
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from xgboost import XGBClassifier, XGBRegressor # type: ignore
+from xgboost import XGBClassifier, XGBRegressor  # type: ignore
 import os
 from dotenv import load_dotenv
+
 app = FastAPI()
-load_dotenv() 
-api_key = os.getenv("GENAI_API_KEY") 
+load_dotenv()
+api_key = os.getenv("GENAI_API_KEY")
 # Configure Gemini API Key
 genai.configure(api_key=api_key)
 
@@ -93,6 +99,7 @@ async def upload_columns(file: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/analyze")
 async def analyze_data(file: UploadFile = File(...), query: str = Form(...)):
@@ -157,7 +164,8 @@ async def analyze_data(file: UploadFile = File(...), query: str = Form(...)):
     except Exception as e:
         print("Error:", str(e))
         return {"error": str(e)}
-    
+
+
 @app.post("/predictive-analysis")
 async def predictive_analysis(
     file: UploadFile = File(...),
@@ -171,15 +179,17 @@ async def predictive_analysis(
     try:
         # Read the uploaded file
         df = await read_uploaded_file(file)
-        
+
         # Provide suggestions if requested
         if suggest:
-            suggestions = suggest_target_and_features(df, api_key='AIzaSyAZp_icM6RRxryPP1zu-guOSd_LMWRSpUU')
+            suggestions = suggest_target_and_features(
+                df, api_key="AIzaSyAZp_icM6RRxryPP1zu-guOSd_LMWRSpUU"
+            )
             return suggestions
-        
+
         # Parse features (sent as JSON string)
         feature_list = json.loads(features) if features else []
-        
+
         # Check if target and features exist in dataframe
         if target not in df.columns:
             raise HTTPException(
@@ -199,14 +209,14 @@ async def predictive_analysis(
         # Improved target type detection
         unique_values = y.nunique()
         total_values = len(y)
-        
+
         is_categorical = (
-            y.dtype == "object" or 
-            y.dtype.name == "category" or
-            (unique_values / total_values < 0.05 and unique_values <= 20) or
-            any(isinstance(x, str) for x in y.dropna().head(10))
+            y.dtype == "object"
+            or y.dtype.name == "category"
+            or (unique_values / total_values < 0.05 and unique_values <= 20)
+            or any(isinstance(x, str) for x in y.dropna().head(10))
         )
-        
+
         # Check if binary classification
         is_binary = False
         if is_categorical:
@@ -245,10 +255,10 @@ async def predictive_analysis(
         if model == "Linear Regression":
             if is_categorical:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Linear Regression cannot be used with categorical target variables"
+                    status_code=400,
+                    detail="Linear Regression cannot be used with categorical target variables",
                 )
-                
+
             model_instance = LinearRegression()
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
@@ -270,20 +280,20 @@ async def predictive_analysis(
         elif model == "Polynomial Regression":
             if is_categorical:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Polynomial Regression cannot be used with categorical target variables"
+                    status_code=400,
+                    detail="Polynomial Regression cannot be used with categorical target variables",
                 )
-                
+
             # Create polynomial features
             poly = PolynomialFeatures(degree=polynomial_degree)
             X_train_poly = poly.fit_transform(X_train)
             X_test_poly = poly.transform(X_test)
-            
+
             # Fit linear regression to polynomial features
             model_instance = LinearRegression()
             model_instance.fit(X_train_poly, y_train)
             y_pred = model_instance.predict(X_test_poly)
-            
+
             response = {
                 "mse": float(mean_squared_error(y_test, y_pred)),
                 "r2": float(r2_score(y_test, y_pred)),
@@ -297,15 +307,15 @@ async def predictive_analysis(
         elif model == "Logistic Regression":
             if not is_categorical:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Logistic Regression can only be used with categorical target variables"
+                    status_code=400,
+                    detail="Logistic Regression can only be used with categorical target variables",
                 )
             if not is_binary:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Logistic Regression is only available for binary classification"
+                    status_code=400,
+                    detail="Logistic Regression is only available for binary classification",
                 )
-                
+
             model_instance = LogisticRegression(max_iter=1000)
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
@@ -320,17 +330,23 @@ async def predictive_analysis(
 
             response = {
                 "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                "confusion_matrix": confusion_matrix(
+                    y_test_original, y_pred_original
+                ).tolist(),
                 "classification_report": classification_report(
                     y_test_original, y_pred_original, output_dict=True
                 ),
             }
 
         elif model == "KNN":
-            model_instance = KNeighborsClassifier(n_neighbors=n_neighbors) if is_categorical else KNeighborsRegressor(n_neighbors=n_neighbors)
+            model_instance = (
+                KNeighborsClassifier(n_neighbors=n_neighbors)
+                if is_categorical
+                else KNeighborsRegressor(n_neighbors=n_neighbors)
+            )
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
-            
+
             if is_categorical:
                 # Convert predictions back to original labels if encoded
                 if target_encoder:
@@ -342,7 +358,9 @@ async def predictive_analysis(
 
                 response = {
                     "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                    "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                    "confusion_matrix": confusion_matrix(
+                        y_test_original, y_pred_original
+                    ).tolist(),
                     "classification_report": classification_report(
                         y_test_original, y_pred_original, output_dict=True
                     ),
@@ -354,18 +372,18 @@ async def predictive_analysis(
                     "r2": float(r2_score(y_test, y_pred)),
                     "n_neighbors": n_neighbors,
                 }
-                
+
         elif model == "Naive Bayes":
             if not is_categorical:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Naive Bayes can only be used with categorical target variables"
+                    status_code=400,
+                    detail="Naive Bayes can only be used with categorical target variables",
                 )
-                
+
             model_instance = GaussianNB()
             model_instance.fit(X_train, y_train)
             y_pred = model_instance.predict(X_test)
-            
+
             # Convert predictions back to original labels if encoded
             if target_encoder:
                 y_test_original = target_encoder.inverse_transform(y_test)
@@ -376,7 +394,9 @@ async def predictive_analysis(
 
             response = {
                 "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                "confusion_matrix": confusion_matrix(
+                    y_test_original, y_pred_original
+                ).tolist(),
                 "classification_report": classification_report(
                     y_test_original, y_pred_original, output_dict=True
                 ),
@@ -398,7 +418,9 @@ async def predictive_analysis(
 
                 response = {
                     "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                    "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                    "confusion_matrix": confusion_matrix(
+                        y_test_original, y_pred_original
+                    ).tolist(),
                     "classification_report": classification_report(
                         y_test_original, y_pred_original, output_dict=True
                     ),
@@ -418,11 +440,13 @@ async def predictive_analysis(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "AdaBoost":
             if is_categorical:
                 base_estimator = DecisionTreeClassifier(max_depth=1)
-                model_instance = AdaBoostClassifier(estimator=base_estimator, random_state=42)
+                model_instance = AdaBoostClassifier(
+                    estimator=base_estimator, random_state=42
+                )
                 model_instance.fit(X_train, y_train)
                 y_pred = model_instance.predict(X_test)
 
@@ -436,7 +460,9 @@ async def predictive_analysis(
 
                 response = {
                     "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                    "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                    "confusion_matrix": confusion_matrix(
+                        y_test_original, y_pred_original
+                    ).tolist(),
                     "classification_report": classification_report(
                         y_test_original, y_pred_original, output_dict=True
                     ),
@@ -446,7 +472,9 @@ async def predictive_analysis(
                 }
             else:
                 base_estimator = DecisionTreeRegressor(max_depth=1)
-                model_instance = AdaBoostRegressor(base_estimator=base_estimator, random_state=42)
+                model_instance = AdaBoostRegressor(
+                    estimator=base_estimator, random_state=42
+                )
                 model_instance.fit(X_train, y_train)
                 y_pred = model_instance.predict(X_test)
 
@@ -457,7 +485,7 @@ async def predictive_analysis(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "Gradient Boost":
             if is_categorical:
                 model_instance = GradientBoostingClassifier(random_state=42)
@@ -474,7 +502,9 @@ async def predictive_analysis(
 
                 response = {
                     "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                    "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                    "confusion_matrix": confusion_matrix(
+                        y_test_original, y_pred_original
+                    ).tolist(),
                     "classification_report": classification_report(
                         y_test_original, y_pred_original, output_dict=True
                     ),
@@ -494,7 +524,7 @@ async def predictive_analysis(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "XGBoost":
             if is_categorical:
                 model_instance = XGBClassifier(random_state=42)
@@ -511,7 +541,9 @@ async def predictive_analysis(
 
                 response = {
                     "accuracy": float(accuracy_score(y_test_original, y_pred_original)),
-                    "confusion_matrix": confusion_matrix(y_test_original, y_pred_original).tolist(),
+                    "confusion_matrix": confusion_matrix(
+                        y_test_original, y_pred_original
+                    ).tolist(),
                     "classification_report": classification_report(
                         y_test_original, y_pred_original, output_dict=True
                     ),
@@ -539,7 +571,9 @@ async def predictive_analysis(
         # Create a visualization
         plt.figure(figsize=(10, 6))
 
-        if (model == "Linear Regression" or model == "Polynomial Regression") and not is_categorical:
+        if (
+            model == "Linear Regression" or model == "Polynomial Regression"
+        ) and not is_categorical:
             # Create a scatter plot of actual vs predicted values
             plt.scatter(y_test, y_pred, alpha=0.5)
 
@@ -551,7 +585,7 @@ async def predictive_analysis(
             plt.xlabel("Actual Values")
             plt.ylabel("Predicted Values")
             plt.title(f"Actual vs Predicted: {target}")
-            
+
         elif model == "KNN" and not is_categorical:
             # For KNN regression, show actual vs predicted
             plt.scatter(y_test, y_pred, alpha=0.5)
@@ -562,7 +596,15 @@ async def predictive_analysis(
             plt.ylabel("Predicted Values")
             plt.title(f"KNN Regression: Actual vs Predicted ({n_neighbors} neighbors)")
 
-        elif is_categorical and model in ["Logistic Regression", "Random Forest", "KNN", "Naive Bayes", "AdaBoost", "Gradient Boost", "XGBoost"]:
+        elif is_categorical and model in [
+            "Logistic Regression",
+            "Random Forest",
+            "KNN",
+            "Naive Bayes",
+            "AdaBoost",
+            "Gradient Boost",
+            "XGBoost",
+        ]:
             # Create a confusion matrix heatmap for classification models
             cm = confusion_matrix(y_test_original, y_pred_original)
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
@@ -571,7 +613,7 @@ async def predictive_analysis(
             plt.title(f"Confusion Matrix - {model}")
 
         else:  # For regression models with feature importance
-            if hasattr(model_instance, 'feature_importances_'):
+            if hasattr(model_instance, "feature_importances_"):
                 # Feature importance plot
                 importances = model_instance.feature_importances_
                 indices = np.argsort(importances)
@@ -599,13 +641,13 @@ async def predictive_analysis(
 
         # Add the visualization to the response
         response["visualization"] = img_base64
-        
+
         # Add information about the target variable type to help the frontend
         response["target_info"] = {
             "is_categorical": is_categorical,
             "is_binary": is_binary,
             "unique_values": unique_values,
-            "dtype": str(df[target].dtype)
+            "dtype": str(df[target].dtype),
         }
 
         return response
@@ -614,11 +656,16 @@ async def predictive_analysis(
         print("Error:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
 def suggest_target_and_features(df, api_key=None, verbose=True):
     """
     Suggest appropriate target and feature columns using Google's Generative AI model.
-    
+
     Parameters:
     -----------
     df : pandas.DataFrame
@@ -627,7 +674,7 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
         Google Generative AI API key (if not already configured)
     verbose : bool, default=True
         Whether to print debugging information
-    
+
     Returns:
     --------
     dict
@@ -642,14 +689,14 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
         except Exception as e:
             logging.error(f"Error configuring API key: {str(e)}")
             return {"error": f"API configuration failed: {str(e)}"}
-    
+
     # Validate dataframe
     if not isinstance(df, pd.DataFrame):
         return {"error": "Input must be a pandas DataFrame"}
-    
+
     if len(df) == 0:
         return {"error": "DataFrame is empty"}
-    
+
     # Prepare dataset information for the LLM
     try:
         column_info = {}
@@ -660,15 +707,19 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
                 "non_null_count": int(df[column].count()),
                 "total_count": len(df),
                 "null_percentage": float((1 - df[column].count() / len(df)) * 100),
-                "sample_values": df[column].dropna().sample(min(5, df[column].count())).tolist() if df[column].count() > 0 else []
+                "sample_values": (
+                    df[column].dropna().sample(min(5, df[column].count())).tolist()
+                    if df[column].count() > 0
+                    else []
+                ),
             }
-        
+
         if verbose:
             logging.info(f"Processed {len(column_info)} columns")
     except Exception as e:
         logging.error(f"Error processing DataFrame columns: {str(e)}")
         return {"error": f"DataFrame analysis failed: {str(e)}"}
-    
+
     # Construct prompt for Gemini
     prompt = f"""
     You are an expert data scientist analyzing a dataset to suggest machine learning targets and features.
@@ -706,37 +757,38 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
         "overall_reasoning": "Comprehensive explanation of analysis"
     }}
     """
-    
+
     if verbose:
         logging.info("Sending request to Generative AI model")
-    
+
     # Use Gemini to analyze the dataset
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
-        
+
         if verbose:
             logging.info("Received response from Generative AI model")
     except Exception as e:
         logging.error(f"Error generating content from Gemini: {str(e)}")
         return {"error": f"Gemini API call failed: {str(e)}"}
-    
+
     # Print raw response for debugging if needed
     if verbose:
         logging.info(f"Raw response: {response.text}")
-    
+
     # Parse the LLM response
     try:
         # Try to extract JSON from the response text
         # Sometimes the model might return text before or after the JSON
         import re
-        json_match = re.search(r'({[\s\S]*})', response.text)
+
+        json_match = re.search(r"({[\s\S]*})", response.text)
         if json_match:
             json_str = json_match.group(1)
             llm_suggestions = json.loads(json_str)
         else:
             llm_suggestions = json.loads(response.text.strip())
-        
+
         if verbose:
             logging.info("Successfully parsed JSON response")
     except json.JSONDecodeError as e:
@@ -745,41 +797,44 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
         return {
             "error": "Failed to parse LLM response as JSON",
             "raw_response": response.text,
-            "message": "The model did not return a valid JSON. Check API settings and model parameters."
+            "message": "The model did not return a valid JSON. Check API settings and model parameters.",
         }
-    
+
     # Structure the suggestions in the format of the original function
     suggestions = {
         "potential_targets": [],
         "suggested_features": {},
         "column_types": {},
-        "reasoning": llm_suggestions.get("overall_reasoning", "")
+        "reasoning": llm_suggestions.get("overall_reasoning", ""),
     }
-    
+
     # Get the first recommended target if available
     if llm_suggestions.get("potential_targets"):
         first_target = llm_suggestions["potential_targets"][0]
         suggestions["recommended_target"] = first_target["column"]
-        
+
         # Get features for this target if available
         if first_target["column"] in llm_suggestions.get("feature_suggestions", {}):
-            suggestions["recommended_features"] = llm_suggestions["feature_suggestions"][first_target["column"]].get("features", [])
-    
+            suggestions["recommended_features"] = llm_suggestions[
+                "feature_suggestions"
+            ][first_target["column"]].get("features", [])
+
     # Add all potential targets
     suggestions["potential_targets"] = [
-        {"column": t["column"], "type": t["type"]} 
+        {"column": t["column"], "type": t["type"]}
         for t in llm_suggestions.get("potential_targets", [])
     ]
-    
+
     # Add column type information
     for column in df.columns:
         suggestions["column_types"][column] = {
             "type": str(df[column].dtype),
             "unique_values": int(df[column].nunique()),
-            "null_percentage": float((1 - df[column].count() / len(df)) * 100)
+            "null_percentage": float((1 - df[column].count() / len(df)) * 100),
         }
-    
+
     return suggestions
+
 
 # @app.post("/get-available-models")
 # async def get_available_models(
@@ -789,44 +844,44 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
 #     try:
 #         # Read the uploaded file
 #         df = await read_uploaded_file(file)
-        
+
 #         if target_column not in df.columns:
 #             raise HTTPException(
 #                 status_code=400, detail=f"Target column '{target_column}' not found in dataset"
 #             )
-            
+
 #         # Determine target type
 #         target_data = df[target_column]
 #         is_categorical = target_data.dtype == "object" or target_data.dtype.name == "category"
-        
+
 #         available_models = []
 #         categorical_models = []
 #         regression_models = []
 #         binary_only_models = []
-        
+
 #         # Define models by type
 #         categorical_models = ["Random Forest", "KNN", "Naive Bayes", "AdaBoost", "Gradient Boost", "XGBoost"]
 #         regression_models = ["Linear Regression", "Polynomial Regression", "Random Forest", "KNN", "AdaBoost", "Gradient Boost", "XGBoost"]
 #         binary_only_models = ["Logistic Regression"]
-        
+
 #         if is_categorical:
 #             # Check if binary classification
 #             is_binary = target_data.nunique() == 2
-            
+
 #             # Add models for all classification types
 #             available_models.extend(categorical_models)
-            
+
 #             # Add binary-only models if applicable
 #             if is_binary:
 #                 available_models.extend(binary_only_models)
-                
+
 #             # Check for multi-class issues
 #             if not is_binary and "Logistic Regression" in available_models:
 #                 available_models.remove("Logistic Regression")
 #         else:
 #             # For numeric targets, offer regression models
 #             available_models.extend(regression_models)
-            
+
 #         # Additional metadata about models to help the frontend
 #         model_info = {
 #             "Linear Regression": {
@@ -884,10 +939,10 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
 #                 "supports_feature_importance": True
 #             }
 #         }
-        
+
 #         # Filter model_info to only include available models
 #         available_model_info = {model: model_info[model] for model in available_models}
-            
+
 #         return {
 #             "available_models": available_models,
 #             "model_info": available_model_info,
@@ -897,75 +952,91 @@ def suggest_target_and_features(df, api_key=None, verbose=True):
 #                 "unique_values": target_data.nunique() if is_categorical else None
 #             }
 #         }
-        
+
 #     except Exception as e:
 #         print("Error:", str(e))
 #         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/get-available-models")
 async def get_available_models(
-    target_column: str = Body(...),
-    file: UploadFile = File(...)
+    target_column: str = Body(...), file: UploadFile = File(...)
 ):
     try:
         # Read the uploaded file
         df = await read_uploaded_file(file)
-        
+
         if target_column not in df.columns:
             raise HTTPException(
-                status_code=400, detail=f"Target column '{target_column}' not found in dataset"
+                status_code=400,
+                detail=f"Target column '{target_column}' not found in dataset",
             )
-            
+
         # Determine target type - improved logic
         target_data = df[target_column]
-        
+
         # Check if target is categorical (object type or few unique values)
         unique_values = target_data.nunique()
         total_values = len(target_data)
-        
+
         # More robust categorical detection:
         # 1. Explicit object/category dtype
         # 2. Few unique values relative to dataset size
         # 3. String values even if pandas inferred as object
         is_categorical = (
-            target_data.dtype == "object" or 
-            target_data.dtype.name == "category" or
-            (unique_values / total_values < 0.05 and unique_values <= 20) or
-            any(isinstance(x, str) for x in target_data.dropna().head(10))
+            target_data.dtype == "object"
+            or target_data.dtype.name == "category"
+            or (unique_values / total_values < 0.05 and unique_values <= 20)
+            or any(isinstance(x, str) for x in target_data.dropna().head(10))
         )
-        
+
         # Check if binary classification
         is_binary = False
         if is_categorical:
             is_binary = unique_values == 2
-            
+
         available_models = []
         categorical_models = []
         regression_models = []
         binary_only_models = []
-        
+
         # Define models by type
-        categorical_models = ["Random Forest", "KNN", "Naive Bayes", "AdaBoost", "Gradient Boost", "XGBoost"]
-        regression_models = ["Linear Regression", "Polynomial Regression", "Random Forest", "KNN", "AdaBoost", "Gradient Boost", "XGBoost"]
+        categorical_models = [
+            "Random Forest",
+            "KNN",
+            "Naive Bayes",
+            "AdaBoost",
+            "Gradient Boost",
+            "XGBoost",
+        ]
+        regression_models = [
+            "Linear Regression",
+            "Polynomial Regression",
+            "Random Forest",
+            "KNN",
+            "AdaBoost",
+            "Gradient Boost",
+            "XGBoost",
+        ]
         binary_only_models = ["Logistic Regression"]
-        
+
         if is_categorical:
             # Add models for all classification types
             available_models.extend(categorical_models)
-            
+
             # Add binary-only models if applicable
             if is_binary:
                 available_models.extend(binary_only_models)
         else:
             # For numeric targets, offer regression models
             available_models.extend(regression_models)
-            
+
         # Additional metadata about models to help the frontend
         model_info = {
             "Linear Regression": {
                 "type": "regression",
                 "description": "Simple linear model that works well with linear relationships",
-                "supports_feature_importance": False
+                "supports_feature_importance": False,
             },
             "Polynomial Regression": {
                 "type": "regression",
@@ -973,19 +1044,25 @@ async def get_available_models(
                 "supports_feature_importance": False,
                 "has_hyperparams": True,
                 "hyperparams": [
-                    {"name": "polynomial_degree", "type": "integer", "default": 2, "min": 2, "max": 5}
-                ]
+                    {
+                        "name": "polynomial_degree",
+                        "type": "integer",
+                        "default": 2,
+                        "min": 2,
+                        "max": 5,
+                    }
+                ],
             },
             "Logistic Regression": {
                 "type": "classification",
                 "description": "Linear model for binary classification problems",
                 "binary_only": True,
-                "supports_feature_importance": False
+                "supports_feature_importance": False,
             },
             "Random Forest": {
                 "type": "both",
                 "description": "Ensemble of decision trees that works well for most datasets",
-                "supports_feature_importance": True
+                "supports_feature_importance": True,
             },
             "KNN": {
                 "type": "both",
@@ -993,34 +1070,40 @@ async def get_available_models(
                 "supports_feature_importance": False,
                 "has_hyperparams": True,
                 "hyperparams": [
-                    {"name": "n_neighbors", "type": "integer", "default": 5, "min": 1, "max": 20}
-                ]
+                    {
+                        "name": "n_neighbors",
+                        "type": "integer",
+                        "default": 5,
+                        "min": 1,
+                        "max": 20,
+                    }
+                ],
             },
             "Naive Bayes": {
                 "type": "classification",
                 "description": "Probabilistic classifier based on Bayes' theorem",
-                "supports_feature_importance": False
+                "supports_feature_importance": False,
             },
             "AdaBoost": {
                 "type": "both",
                 "description": "Boosting ensemble that focuses on difficult cases",
-                "supports_feature_importance": True
+                "supports_feature_importance": True,
             },
             "Gradient Boost": {
                 "type": "both",
                 "description": "Gradient-based boosting ensemble for high accuracy",
-                "supports_feature_importance": True
+                "supports_feature_importance": True,
             },
             "XGBoost": {
                 "type": "both",
                 "description": "High-performance implementation of gradient boosting",
-                "supports_feature_importance": True
-            }
+                "supports_feature_importance": True,
+            },
         }
-        
+
         # Filter model_info to only include available models
         available_model_info = {model: model_info[model] for model in available_models}
-            
+
         return {
             "available_models": available_models,
             "model_info": available_model_info,
@@ -1028,13 +1111,14 @@ async def get_available_models(
                 "is_categorical": is_categorical,
                 "is_binary": is_binary if is_categorical else False,
                 "unique_values": unique_values,
-                "dtype": str(target_data.dtype)
-            }
+                "dtype": str(target_data.dtype),
+            },
         }
-        
+
     except Exception as e:
         print("Error:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/diagnostic-analysis")
 async def diagnostic_analysis(
@@ -1198,10 +1282,10 @@ async def make_prediction(
         if model == "Linear Regression":
             if is_classification:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Linear Regression cannot be used with categorical target variables"
+                    status_code=400,
+                    detail="Linear Regression cannot be used with categorical target variables",
                 )
-                
+
             model_instance = LinearRegression()
             model_instance.fit(X, y)
             prediction = model_instance.predict(pred_input)[0]
@@ -1214,33 +1298,33 @@ async def make_prediction(
         elif model == "Polynomial Regression":
             if is_classification:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Polynomial Regression cannot be used with categorical target variables"
+                    status_code=400,
+                    detail="Polynomial Regression cannot be used with categorical target variables",
                 )
-                
+
             # Create polynomial features
             poly = PolynomialFeatures(degree=polynomial_degree)
             X_poly = poly.fit_transform(X)
             pred_input_poly = poly.transform(pred_input)
-            
+
             # Fit linear regression to polynomial features
             model_instance = LinearRegression()
             model_instance.fit(X_poly, y)
             prediction = model_instance.predict(pred_input_poly)[0]
-            
+
             return {
                 "prediction_type": "regression",
                 "predicted_value": float(prediction),
-                "polynomial_degree": polynomial_degree
+                "polynomial_degree": polynomial_degree,
             }
 
         elif model == "Logistic Regression":
             if not is_classification:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Logistic Regression can only be used with categorical target variables"
+                    status_code=400,
+                    detail="Logistic Regression can only be used with categorical target variables",
                 )
-                
+
             model_instance = LogisticRegression(max_iter=1000)
             model_instance.fit(X, y)
             prediction = model_instance.predict(pred_input)[0]
@@ -1267,13 +1351,17 @@ async def make_prediction(
             }
 
         elif model == "KNN":
-            model_instance = KNeighborsClassifier(n_neighbors=n_neighbors) if is_classification else KNeighborsRegressor(n_neighbors=n_neighbors)
+            model_instance = (
+                KNeighborsClassifier(n_neighbors=n_neighbors)
+                if is_classification
+                else KNeighborsRegressor(n_neighbors=n_neighbors)
+            )
             model_instance.fit(X, y)
             prediction = model_instance.predict(pred_input)[0]
-            
+
             if is_classification:
                 probabilities = model_instance.predict_proba(pred_input)[0]
-                
+
                 # Convert prediction back to original label if encoded
                 if target_encoder:
                     prediction = target_encoder.inverse_transform([prediction])[0]
@@ -1292,22 +1380,22 @@ async def make_prediction(
                         prediction if isinstance(prediction, str) else float(prediction)
                     ),
                     "probabilities": prob_dict,
-                    "n_neighbors": n_neighbors
+                    "n_neighbors": n_neighbors,
                 }
             else:
                 return {
                     "prediction_type": "regression",
                     "predicted_value": float(prediction),
-                    "n_neighbors": n_neighbors
+                    "n_neighbors": n_neighbors,
                 }
 
         elif model == "Naive Bayes":
             if not is_classification:
                 raise HTTPException(
-                    status_code=400, 
-                    detail="Naive Bayes can only be used with categorical target variables"
+                    status_code=400,
+                    detail="Naive Bayes can only be used with categorical target variables",
                 )
-                
+
             model_instance = GaussianNB()
             model_instance.fit(X, y)
             prediction = model_instance.predict(pred_input)[0]
@@ -1374,11 +1462,13 @@ async def make_prediction(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "AdaBoost":
             if is_classification:
                 base_estimator = DecisionTreeClassifier(max_depth=1)
-                model_instance = AdaBoostClassifier(base_estimator=base_estimator, random_state=42)
+                model_instance = AdaBoostClassifier(
+                    estimator=base_estimator, random_state=42
+                )
                 model_instance.fit(X, y)
                 prediction = model_instance.predict(pred_input)[0]
                 probabilities = model_instance.predict_proba(pred_input)[0]
@@ -1407,7 +1497,9 @@ async def make_prediction(
                 }
             else:
                 base_estimator = DecisionTreeRegressor(max_depth=1)
-                model_instance = AdaBoostRegressor(base_estimator=base_estimator, random_state=42)
+                model_instance = AdaBoostRegressor(
+                    estimator=base_estimator, random_state=42
+                )
                 model_instance.fit(X, y)
                 prediction = model_instance.predict(pred_input)[0]
 
@@ -1418,7 +1510,7 @@ async def make_prediction(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "Gradient Boost":
             if is_classification:
                 model_instance = GradientBoostingClassifier(random_state=42)
@@ -1460,7 +1552,7 @@ async def make_prediction(
                         zip(feature_list, model_instance.feature_importances_.tolist())
                     ),
                 }
-                
+
         elif model == "XGBoost":
             if is_classification:
                 model_instance = XGBClassifier(random_state=42)
@@ -1510,6 +1602,7 @@ async def make_prediction(
     except Exception as e:
         print("Error during prediction:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # CUSTOM VISUALIZATION
 
