@@ -60,6 +60,14 @@ const Documentation = () => {
               </li>
               <li>
                 <button 
+                  onClick={() => setActiveSection('datasets')}
+                  className={`w-full text-left p-2 rounded ${activeSection === 'datasets' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                >
+                  Tested Datasets
+                </button>
+              </li>
+              <li>
+                <button 
                   onClick={() => setActiveSection('limitations')}
                   className={`w-full text-left p-2 rounded ${activeSection === 'limitations' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
                 >
@@ -348,9 +356,6 @@ const Documentation = () => {
                   <h3 className="text-xl font-semibold mb-3 text-blue-600">Getting Started</h3>
                   <ol className="list-decimal pl-6 space-y-4 text-gray-700">
                     <li>
-                      <span className="font-medium">Login:</span> Access the platform using your credentials
-                    </li>
-                    <li>
                       <span className="font-medium">Upload Data:</span> 
                       <ul className="list-disc pl-6 mt-2 space-y-1">
                         <li>Click on "Upload CSV" button or drag and drop your file</li>
@@ -367,7 +372,7 @@ const Documentation = () => {
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-xl font-semibold mb-3 text-blue-600">LLM Analysis</h3>
                   <ol className="list-decimal pl-6 space-y-4 text-gray-700">
-                    <li>Navigate to the LLM Analysis tab (default view after login)</li>
+                    <li>Navigate to the LLM Analysis tab</li>
                     <li>Enter your natural language query about the dataset in the input field</li>
                     <li>Click "Analyze" to generate insights</li>
                     <li>View the generated summary and any accompanying visualizations</li>
@@ -429,6 +434,108 @@ const Documentation = () => {
                     <li>Interact with the visualization (hover for details, zoom, etc.)</li>
                     <li>Export the visualization as an image if needed</li>
                   </ol>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tested Datasets Section */}
+          {activeSection === 'datasets' && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6 text-blue-700">Tested Datasets</h2>
+              <div className="space-y-6">
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h3 className="text-xl font-semibold mb-3 text-blue-600">Dataset Collection</h3>
+                  <p className="text-gray-700 mb-4">
+                    Analyza has been extensively tested with various datasets from Kaggle to ensure compatibility and performance. 
+                    Below are some of the datasets we've used for testing:
+                  </p>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="http://kaggle.com/datasets/erdemtaha/cancer-data" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Cancer Data</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Dataset containing cancer-related metrics and measurements</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/adityakadiwal/water-potability" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Water Potability</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Water quality metrics and potability classification</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/yasserh/breast-cancer-dataset" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Breast Cancer Dataset</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Diagnostic measurements for breast cancer cases</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/amulyas/penguin-size-dataset" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Penguin Size Dataset</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Measurements for different penguin species</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Customer Segmentation</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Mall customer data for segmentation analysis</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/rabieelkharoua/students-performance-dataset" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Students Performance</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Academic performance metrics for students</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/abisheksudarshan/customer-segmentation" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Customer Segmentation (Alternative)</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Another dataset for customer segmentation analysis</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/brsahan/genomic-data-for-cancer" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Genomic Data for Cancer</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Genomic measurements related to cancer</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/uciml/glass" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Glass Identification</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Chemical composition of different glass types</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                      <a href="https://www.kaggle.com/datasets/rikdifos/credit-card-approval-prediction" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <h4 className="font-medium">Credit Card Approval Prediction</h4>
+                      </a>
+                      <p className="text-gray-700 text-sm mt-1">Data for predicting credit card approval</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-xl font-semibold mb-3 text-blue-600">Dataset Requirements</h3>
+                  <p className="text-gray-700 mb-4">
+                    For optimal performance with Analyza, datasets should meet the following criteria:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                    <li>Structured data in CSV format (comma-separated values)</li>
+                    <li>Clear column headers in the first row</li>
+                    <li>Consistent data types within each column</li>
+                    <li>File size under 100MB (for web browser processing)</li>
+                    <li>For ML analysis: At least 50-100 records recommended for meaningful results</li>
+                  </ul>
                 </div>
               </div>
             </section>
@@ -514,7 +621,7 @@ const Documentation = () => {
               <p className="text-gray-400">Data Analysis & Visualization Tool</p>
             </div>
             <div className="text-sm text-gray-400">
-              <p>Developed by  Shruti Srivastava, Dhuruv Kumar, Khushi Chauhan</p>
+              <p>Developed by Shruti Srivastava, Dhuruv Kumar, Khushi Chauhan</p>
               <p>Under the guidance of Dr. Deepak Kumar Sharma</p>
               <p>School of Computer Science, UPES - March 2025</p>
             </div>

@@ -95,7 +95,7 @@ async def upload_columns(file: UploadFile = File(...)):
         # Return columns and a preview of the data
         return {
             "columns": df.columns.tolist(),
-            "preview": df.head(5).to_dict(orient="records"),
+            "preview": json.loads(df.head(5).to_json(orient="records")),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -109,23 +109,44 @@ async def analyze_data(file: UploadFile = File(...), query: str = Form(...)):
 
         # Construct prompt for Gemini
         prompt = f"""
-        You are a data analyst. Analyze the given dataset and answer the user's query. Also, provide Python code for visualization that supports the summary.
-        Format the response **strictly as valid JSON**, without any markdown formatting or explanations.
-        data has already been uploaded in df variable
-        User Query: {query}
-        Dataset: {df}
+    You are an expert data scientist analyzing a dataset to suggest machine learning targets and features.
 
-        Expected JSON Output:
-        {{
-            "summary": "<Short text summary along with the explanation of the visualization you made.>",
-            "code": "<Python code for visualization using matplotlib>"
-        }}
+    Dataset Overview:
+    {json.dumps(column_info, indent=2)}
 
-        Ensure:
-        - The response is a **valid JSON** (no markdown, no extra text).
-        - The code contains this line: `plt.savefig('plot.png')`.
-        - Do not use `animation_group` or `return`.
-        """
+    Tasks:
+    1. Identify potential target columns for:
+    a) Classification — select only categorical columns that represent practically meaningful or business-relevant outcomes (e.g., product category, customer segment, purchase intent). 
+        - Avoid demographic or identity-related columns such as 'Gender', 'Name', 'Address', 'Contact', 'CustomerID', or similar unless the dataset is explicitly intended for predicting such attributes.
+    b) Regression — select numeric columns with continuous or ordinal values that make sense to predict (e.g., income, price, spending score).
+
+    2. For each potential target, suggest:
+    - Appropriate features (columns likely to influence the target)
+    - Reasoning for selecting these features
+    - Suggested machine learning approach (classification or regression)
+
+    3. If no suitable classification target is available, do not suggest any. Avoid using inappropriate fallback targets (like 'Age' or 'Gender') for classification unless their prediction is contextually valid and meaningful.
+
+    4. Provide a detailed explanation of your selection and decision-making process.
+
+    Return a structured JSON response with:
+    {{
+        "potential_targets": [
+            {{
+                "column": "column_name",
+                "type": "classification/regression",
+                "reasoning": "Why this column is a good target"
+            }}
+        ],
+        "feature_suggestions": {{
+            "target_column": {{
+                "features": ["feature1", "feature2"],
+                "reasoning": "Why these features are relevant"
+            }}
+        }},
+        "overall_reasoning": "Comprehensive explanation of analysis"
+    }}
+    """
 
         print("Sending Prompt to Gemini...")
         model = genai.GenerativeModel("gemini-2.0-flash")
